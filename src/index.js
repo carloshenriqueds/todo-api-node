@@ -34,6 +34,11 @@ app.post('/users', (request, response) => {
     response.status(400).json({error: "Username is required!"});
   }
 
+  const accountAlreadyExist = users.some((user) => user.username === username);
+  if( accountAlreadyExist ){
+    return response.status(400).json({error: "conta já existe!"});
+  }
+
   const user = {
     id: uuidv4(),
     name,
@@ -47,18 +52,11 @@ app.post('/users', (request, response) => {
 
 app.get('/todos', checksExistsUserAccount, (request, response) => {
   const { user } = request;
+
   return response.json(user.todos);
 });
 
-/*
-{ 
-	id: 'uuid', // precisa ser um uuid
-	title: 'Nome da tarefa',
-	done: false, 
-	deadline: '2021-02-27T00:00:00.000Z', 
-	created_at: '2021-02-22T00:00:00.000Z'
-}
-*/
+
 app.post('/todos', checksExistsUserAccount, (request, response) => {
   const { user } = request;
   const { title, deadline } = request.body;
@@ -80,6 +78,9 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
   const { title, deadline } = request.body;
   const { id } = request.params;
   let todo = user.todos.filter((todo) => todo.id === id )[0];
+  if (!todo) {
+    return response.status(404).json({	error: 'Mensagem do erro'});
+  }
   todo.title = title;
   todo.deadline = deadline;
   return response.status(201).json(todo);
@@ -89,6 +90,9 @@ app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
   const { user } = request;
   const { id } = request.params;
   let todo = user.todos.filter((todo) => todo.id === id )[0];
+  if (!todo) {
+    return response.status(404).json({	error: 'Mensagem do erro'});
+  }
   todo.done = true;
   return response.status(201).json(todo);
 });
@@ -96,10 +100,15 @@ app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
 app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
   const { user } = request;
   const { id } = request.params;
-  const arrayPosition = user.todos.findIndex((todo) => todo.id === id);
-  user.todos.splice(arrayPosition, 1);
+  const todoPosition = user.todos.findIndex(todo => todo.id === id);
 
-  return response.status(200).json(user.todos);
+  if (todoPosition === -1) {
+    return response.status(404).json({	error: 'Mensagem do erro'});
+  }
+
+  user.todos.splice(todoPosition, 1);
+
+  return response.status(204).json();
 });
 
 module.exports = app;
